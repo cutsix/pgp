@@ -1,2 +1,2 @@
 # pgp
-tg pgp script
+tg pgp shell script
