@@ -59,41 +59,41 @@ yum_git_check() {
     fi
 }
 
-yum_python_check() {
-    echo "正在检查 python 安装情况 . . ."
-    if command -v python3 >>/dev/null 2>&1; then
-        U_V1=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $1}')
-        U_V2=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $2}')
-        if [ $U_V1 -gt 3 ]; then
-            echo 'Python 3.6+ 存在 . . .'
-        elif [ $U_V2 -ge 6 ]; then
-            echo 'Python 3.6+ 存在 . . .'
-            PYV=$U_V1.$U_V2
-            PYV=$(which python$PYV)
-        else
-            if command -v python3.6 >>/dev/null 2>&1; then
-                echo 'Python 3.6+ 存在 . . .'
-                PYV=$(which python3.6)
-            else
-                echo "Python3.6 未安装在此系统上，正在进行安装"
-                yum install python3 -y >>/dev/null 2>&1
-                update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 >>/dev/null 2>&1
-                PYV=$(which python3.6)
-            fi
-        fi
-    else
-        echo "Python3.6 未安装在此系统上，正在进行安装"
-        yum install python3 -y >>/dev/null 2>&1
-        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 >>/dev/null 2>&1
-        PYV=$(which python3.6)
-    fi
-    if command -v pip3 >>/dev/null 2>&1; then
-        echo 'pip 存在 . . .'
-    else
-        echo "pip3 未安装在此系统上，正在进行安装"
-        yum install -y python3-pip >>/dev/null 2>&1
-    fi
-}
+# yum_python_check() {
+#     echo "正在检查 python 安装情况 . . ."
+#     if command -v python3 >>/dev/null 2>&1; then
+#         U_V1=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $1}')
+#         U_V2=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $2}')
+#         if [ $U_V1 -gt 3 ]; then
+#             echo 'Python 3.6+ 存在 . . .'
+#         elif [ $U_V2 -ge 6 ]; then
+#             echo 'Python 3.6+ 存在 . . .'
+#             PYV=$U_V1.$U_V2
+#             PYV=$(which python$PYV)
+#         else
+#             if command -v python3.6 >>/dev/null 2>&1; then
+#                 echo 'Python 3.6+ 存在 . . .'
+#                 PYV=$(which python3.6)
+#             else
+#                 echo "Python3.6 未安装在此系统上，正在进行安装"
+#                 yum install python3 -y >>/dev/null 2>&1
+#                 update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 >>/dev/null 2>&1
+#                 PYV=$(which python3.6)
+#             fi
+#         fi
+#     else
+#         echo "Python3.6 未安装在此系统上，正在进行安装"
+#         yum install python3 -y >>/dev/null 2>&1
+#         update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 >>/dev/null 2>&1
+#         PYV=$(which python3.6)
+#     fi
+#     if command -v pip3 >>/dev/null 2>&1; then
+#         echo 'pip 存在 . . .'
+#     else
+#         echo "pip3 未安装在此系统上，正在进行安装"
+#         yum install -y python3-pip >>/dev/null 2>&1
+#     fi
+# }
 
 yum_screen_check() {
     echo "正在检查 Screen 安装情况 . . ."
@@ -132,100 +132,100 @@ apt_git_check() {
     fi
 }
 
-apt_python_check() {
-    echo "正在检查 python 安装情况 . . ."
-    if command -v python3 >>/dev/null 2>&1; then
-        U_V1=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $1}')
-        U_V2=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $2}')
-        if [ $U_V1 -gt 3 ]; then
-            echo 'Python 3.6+ 存在 . . .'
-        elif [ $U_V2 -ge 6 ]; then
-            echo 'Python 3.6+ 存在 . . .'
-            PYV=$U_V1.$U_V2
-            PYV=$(which python$PYV)
-        else
-            if command -v python3.6 >>/dev/null 2>&1; then
-                echo 'Python 3.6+ 存在 . . .'
-                PYV=$(which python3.6)
-            else
-                echo "Python3.6 未安装在此系统上，正在进行安装"
-                add-apt-repository ppa:deadsnakes/ppa -y
-                apt-get update >>/dev/null 2>&1
-                apt-get install python3.6 -y >>/dev/null 2>&1
-                update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 >>/dev/null 2>&1
-                PYV=$(which python3.6)
-            fi
-        fi
-    else
-        echo "Python3.6 未安装在此系统上，正在进行安装"
-        add-apt-repository ppa:deadsnakes/ppa -y
-        apt-get update >>/dev/null 2>&1
-        apt-get install python3.6 -y >>/dev/null 2>&1
-        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 >>/dev/null 2>&1
-        PYV=$(which python3.6)
-    fi
-    if command -v pip3 >>/dev/null 2>&1; then
-        echo 'pip 存在 . . .'
-    else
-        echo "pip3 未安装在此系统上，正在进行安装"
-        apt-get install -y python3-pip >>/dev/null 2>&1
-    fi
-}
+# apt_python_check() {
+#     echo "正在检查 python 安装情况 . . ."
+#     if command -v python3 >>/dev/null 2>&1; then
+#         U_V1=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $1}')
+#         U_V2=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $2}')
+#         if [ $U_V1 -gt 3 ]; then
+#             echo 'Python 3.6+ 存在 . . .'
+#         elif [ $U_V2 -ge 6 ]; then
+#             echo 'Python 3.6+ 存在 . . .'
+#             PYV=$U_V1.$U_V2
+#             PYV=$(which python$PYV)
+#         else
+#             if command -v python3.6 >>/dev/null 2>&1; then
+#                 echo 'Python 3.6+ 存在 . . .'
+#                 PYV=$(which python3.6)
+#             else
+#                 echo "Python3.6 未安装在此系统上，正在进行安装"
+#                 add-apt-repository ppa:deadsnakes/ppa -y
+#                 apt-get update >>/dev/null 2>&1
+#                 apt-get install python3.6 -y >>/dev/null 2>&1
+#                 update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 >>/dev/null 2>&1
+#                 PYV=$(which python3.6)
+#             fi
+#         fi
+#     else
+#         echo "Python3.6 未安装在此系统上，正在进行安装"
+#         add-apt-repository ppa:deadsnakes/ppa -y
+#         apt-get update >>/dev/null 2>&1
+#         apt-get install python3.6 -y >>/dev/null 2>&1
+#         update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 >>/dev/null 2>&1
+#         PYV=$(which python3.6)
+#     fi
+#     if command -v pip3 >>/dev/null 2>&1; then
+#         echo 'pip 存在 . . .'
+#     else
+#         echo "pip3 未安装在此系统上，正在进行安装"
+#         apt-get install -y python3-pip >>/dev/null 2>&1
+#     fi
+# }
 
-debian_python_check() {
-    echo "正在检查 python 安装情况 . . ."
-    if command -v python3 >>/dev/null 2>&1; then
-        U_V1=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $1}')
-        U_V2=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $2}')
-        if [ $U_V1 -gt 3 ]; then
-            echo 'Python 3.6+ 存在 . . .'
-        elif [ $U_V2 -ge 6 ]; then
-            echo 'Python 3.6+ 存在 . . .'
-            PYV=$U_V1.$U_V2
-            PYV=$(which python$PYV)
-        else
-            if command -v python3.6 >>/dev/null 2>&1; then
-                echo 'Python 3.6+ 存在 . . .'
-                PYV=$(which python3.6)
-            else
-                echo "Python3.6 未安装在此系统上，正在进行安装"
-                apt-get update -y >>/dev/null 2>&1
-                apt-get install -y build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev >>/dev/null 2>&1
-                wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz >>/dev/null 2>&1
-                tar -xvf Python-3.6.5.tgz >>/dev/null 2>&1
-                chmod -R +x Python-3.6.5 >>/dev/null 2>&1
-                cd Python-3.6.5 >>/dev/null 2>&1
-                ./configure >>/dev/null 2>&1
-                make && make install >>/dev/null 2>&1
-                cd .. >>/dev/null 2>&1
-                rm -rf Python-3.6.5 Python-3.6.5.tar.gz >>/dev/null 2>&1
-                PYV=$(which python3.6)
-                update-alternatives --install /usr/bin/python3 python3 $PYV 1 >>/dev/null 2>&1
-            fi
-        fi
-    else
-        echo "Python3.6 未安装在此系统上，正在进行安装"
-        apt-get update -y >>/dev/null 2>&1
-        apt-get install -y build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev >>/dev/null 2>&1
-        wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz >>/dev/null 2>&1
-        tar -xvf Python-3.6.5.tgz >>/dev/null 2>&1
-        chmod -R +x Python-3.6.5 >>/dev/null 2>&1
-        cd Python-3.6.5 >>/dev/null 2>&1
-        ./configure >>/dev/null 2>&1
-        make && make install >>/dev/null 2>&1
-        cd .. >>/dev/null 2>&1
-        rm -rf Python-3.6.5 Python-3.6.5.tar.gz >>/dev/null 2>&1
-        PYV=$(which python3)
-        update-alternatives --install /usr/bin/python3 python3 $PYV 1 >>/dev/null 2>&1
-    fi
-    echo "正在检查 pip3 安装情况 . . ."
-    if command -v pip3 >>/dev/null 2>&1; then
-        echo 'pip 存在 . . .'
-    else
-        echo "pip3 未安装在此系统上，正在进行安装"
-        apt-get install -y python3-pip >>/dev/null 2>&1
-    fi
-}
+# debian_python_check() {
+#     echo "正在检查 python 安装情况 . . ."
+#     if command -v python3 >>/dev/null 2>&1; then
+#         U_V1=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $1}')
+#         U_V2=$(python3 -V 2>&1 | awk '{print $2}' | awk -F '.' '{print $2}')
+#         if [ $U_V1 -gt 3 ]; then
+#             echo 'Python 3.6+ 存在 . . .'
+#         elif [ $U_V2 -ge 6 ]; then
+#             echo 'Python 3.6+ 存在 . . .'
+#             PYV=$U_V1.$U_V2
+#             PYV=$(which python$PYV)
+#         else
+#             if command -v python3.6 >>/dev/null 2>&1; then
+#                 echo 'Python 3.6+ 存在 . . .'
+#                 PYV=$(which python3.6)
+#             else
+#                 echo "Python3.6 未安装在此系统上，正在进行安装"
+#                 apt-get update -y >>/dev/null 2>&1
+#                 apt-get install -y build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev >>/dev/null 2>&1
+#                 wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz >>/dev/null 2>&1
+#                 tar -xvf Python-3.6.5.tgz >>/dev/null 2>&1
+#                 chmod -R +x Python-3.6.5 >>/dev/null 2>&1
+#                 cd Python-3.6.5 >>/dev/null 2>&1
+#                 ./configure >>/dev/null 2>&1
+#                 make && make install >>/dev/null 2>&1
+#                 cd .. >>/dev/null 2>&1
+#                 rm -rf Python-3.6.5 Python-3.6.5.tar.gz >>/dev/null 2>&1
+#                 PYV=$(which python3.6)
+#                 update-alternatives --install /usr/bin/python3 python3 $PYV 1 >>/dev/null 2>&1
+#             fi
+#         fi
+#     else
+#         echo "Python3.6 未安装在此系统上，正在进行安装"
+#         apt-get update -y >>/dev/null 2>&1
+#         apt-get install -y build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev >>/dev/null 2>&1
+#         wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz >>/dev/null 2>&1
+#         tar -xvf Python-3.6.5.tgz >>/dev/null 2>&1
+#         chmod -R +x Python-3.6.5 >>/dev/null 2>&1
+#         cd Python-3.6.5 >>/dev/null 2>&1
+#         ./configure >>/dev/null 2>&1
+#         make && make install >>/dev/null 2>&1
+#         cd .. >>/dev/null 2>&1
+#         rm -rf Python-3.6.5 Python-3.6.5.tar.gz >>/dev/null 2>&1
+#         PYV=$(which python3)
+#         update-alternatives --install /usr/bin/python3 python3 $PYV 1 >>/dev/null 2>&1
+#     fi
+#     echo "正在检查 pip3 安装情况 . . ."
+#     if command -v pip3 >>/dev/null 2>&1; then
+#         echo 'pip 存在 . . .'
+#     else
+#         echo "pip3 未安装在此系统上，正在进行安装"
+#         apt-get install -y python3-pip >>/dev/null 2>&1
+#     fi
+# }
 
 apt_screen_check() {
     echo "正在检查 Screen 安装情况 . . ."
@@ -239,7 +239,7 @@ apt_screen_check() {
 
 apt_require_install() {
     echo "正在安装系统所需依赖，可能需要几分钟的时间 . . ."
-    apt-get install python3.6-dev python3-dev imagemagick software-properties-common tesseract-ocr tesseract-ocr-chi-sim libzbar-dev -y >>/dev/null 2>&1
+    apt-get install python3-pip python3-venv imagemagick libwebp-dev neofetch libzbar-dev libxml2-dev libxslt-dev tesseract-ocr tesseract-ocr-all -y >>/dev/null 2>&1
     add-apt-repository ppa:dawidd0811/neofetch -y
     apt-get install neofetch -y >>/dev/null 2>&1
 }
@@ -284,8 +284,8 @@ pypi_install() {
     $PYV -m pip install -r requirements.txt
     echo "安装 PyYAML..."
     sudo -H $PYV -m pip install --ignore-installed PyYAML
-    echo "安装特定版本的 Pyrogram..."
-    $PYV -m pip install git+https://github.com/TeamPGM/pyrogram@1.4.14
+    # echo "安装特定版本的 Pyrogram..."
+    # $PYV -m pip install git+https://github.com/TeamPGM/pyrogram@1.4.14
     echo "安装 coloredlogs..."
     $PYV -m pip install coloredlogs
     $PYV -m pip install requests
@@ -473,7 +473,7 @@ start_installation() {
         welcome
         yum_update
         yum_git_check
-        yum_python_check
+        # yum_python_check
         yum_screen_check
         yum_require_install
         download_repo
@@ -489,7 +489,7 @@ start_installation() {
         welcome
         apt_update
         apt_git_check
-        apt_python_check
+        # apt_python_check
         apt_screen_check
         apt_require_install
         download_repo
@@ -505,7 +505,7 @@ start_installation() {
         welcome
         apt_update
         apt_git_check
-        debian_python_check
+        # debian_python_check
         apt_screen_check
         debian_require_install
         download_repo
@@ -552,13 +552,13 @@ cleansession() {
     rm -rf /var/lib/pgp/pagermaid.session >>/dev/null 2>&1
     echo "请进行重新登陆. . ."
     if [ "$release" = "centos" ]; then
-        yum_python_check
+        # yum_python_check
         yum_screen_check
     elif [ "$release" = "ubuntu" ]; then
-        apt_python_check
+        # apt_python_check
         apt_screen_check
     elif [ "$release" = "debian" ]; then
-        debian_python_check
+        # debian_python_check
         apt_screen_check
     else
         echo "目前暂时不支持此系统。"
@@ -599,7 +599,7 @@ install_require() {
         echo "系统检测通过。"
         yum_update
         yum_git_check
-        yum_python_check
+        # yum_python_check
         yum_screen_check
         yum_require_install
         pypi_install
@@ -609,7 +609,7 @@ install_require() {
         echo "系统检测通过。"
         apt_update
         apt_git_check
-        apt_python_check
+        # apt_python_check
         apt_screen_check
         apt_require_install
 	check_and_install_venv
@@ -622,7 +622,7 @@ install_require() {
         welcome
         apt_update
         apt_git_check
-        debian_python_check
+        # debian_python_check
         apt_screen_check
         debian_require_install
 	check_and_install_venv
