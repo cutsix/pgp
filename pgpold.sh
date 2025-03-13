@@ -469,11 +469,30 @@ systemctl_reload() {
 
 setup_crontab() {
     echo "正在设置定时任务..."
+    
+    if ! command -v crontab >/dev/null 2>&1; then
+	    echo "crontab未安装，正在尝试安装..."
+	    if [ "$release" = "centos" ]; then
+		    yum install cronie -y >>/dev/null 2>&1
+	    elif [ "$release" = "ubuntu" ] || [ "$release" = "debian" ]; then
+		    apt-get install cron -y >>/dev/null 2>&1
+	    else
+		    echo "无法确定如何安装crontab，请手动安装后再设置定时任务"
+		    echo "定时任务内容: 0 6,18 * * * systemctl restart pgp"
+		    return 1
+	    fi
 
-    if command -v vim.basic >/dev/null 2>&1; then
+	    if ! command -v crontab >/dev/null 2>&1; then
+		    echo "crontab安装失败，请手动安装并添加以下内容到crontab:"
+		    echo "0 6,18 * * * systemctl restart pgp"
+		    return 1
+	    fi
+    fi
+
+    if command -v vim.basic >/dev/null 2>&1; then 
 	    export EDITOR=/usr/bin/vim.basic
     else
-	    echo "警告：vim.basic未找到，将使用系统默认编辑器"
+	    echo "vim.basic未找到，将使用系统默认编辑器"
     fi
 
     crontab -l > /tmp/current_cron 2>/dev/null || echo "" > /tmp/current_cron
@@ -481,8 +500,8 @@ setup_crontab() {
     if ! grep -q "systemctl restart pgp" /tmp/current_cron; then
 	    echo "0 6,18 * * * systemctl restart pgp" >> /tmp/current_cron
 	    if crontab /tmp/current_cron; then
-		    echo "成功添加定时任务：每天6:00和18:00自动执行重启人形"
-	    else 
+		    echo "成功添加定时任务，每天6:00和18:00自动重启人形"
+	    else
 		    echo "添加定时任务失败，请手动添加以下内容到crontab:"
 		    echo "0 6,18 * * * systemctl restart pgp"
 	    fi
