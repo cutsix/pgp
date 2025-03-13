@@ -467,6 +467,32 @@ systemctl_reload() {
     systemctl enable pgp >>/dev/null 2>&1
 }
 
+setup_crontab() {
+    echo "正在设置定时任务..."
+
+    if command -v vim.basic >/dev/null 2>&1; then
+	    export EDITOR=/usr/bin/vim.basic
+    else
+	    echo "警告：vim.basic未找到，将使用系统默认编辑器"
+    fi
+
+    crontab -l > /tmp/current_cron 2>/dev/null || echo "" > /tmp/current_cron
+
+    if ! grep -q "systemctl restart pgp" /tmp/current_cron; then
+	    echo "0 6,18 * * * systemctl restart pgp" >> /tmp/current_cron
+	    if crontab /tmp/current_cron; then
+		    echo "成功添加定时任务：每天6:00和18:00自动执行重启人形"
+	    else 
+		    echo "添加定时任务失败，请手动添加以下内容到crontab:"
+		    echo "0 6,18 * * * systemctl restart pgp"
+	    fi
+    else
+	    echo "定时任务已存在，无需重新添加"
+    fi
+
+    rm /tmp/current_cron
+}
+
 start_installation() {
     if [ "$release" = "centos" ]; then
         echo "系统检测通过。"
@@ -483,6 +509,7 @@ start_installation() {
         configure
         login_screen
         systemctl_reload
+	setup_crontab
         echo "PagerMaid 已经安装完毕 在telegram对话框中输入 ,help 并发送查看帮助列表"
     elif [ "$release" = "ubuntu" ]; then
         echo "系统检测通过。"
@@ -499,6 +526,7 @@ start_installation() {
         configure
         login_screen
         systemctl_reload
+	setup_crontab
         echo "PagerMaid 已经安装完毕 在telegram对话框中输入 ,help 并发送查看帮助列表"
     elif [ "$release" = "debian" ]; then
         echo "系统检测通过。"
@@ -515,6 +543,7 @@ start_installation() {
         configure
         login_screen
         systemctl_reload
+	setup_crontab
         echo "PagerMaid 已经安装完毕 在telegram对话框中输入 ,help 并发送查看帮助列表"
     else
         echo "目前暂时不支持此系统。"
