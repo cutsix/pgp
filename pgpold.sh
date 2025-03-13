@@ -363,7 +363,7 @@ read_checknum() {
         break
     fi
 done
-    read -p "有没有二次登录验证码？ [Y/n]" choi
+read -p "有没有二次登录验证码(两步密码)？ [Y/n]" choi
     if [ "$choi" == "y" ] || [ "$choi" == "Y" ]; then
         read -p "请输入您的二次登录验证码: " twotimepwd
         screen -x -S userbot -p 0 -X stuff "$twotimepwd"
