@@ -295,9 +295,19 @@ yum_screen_check() {
     fi
 }
 
+yum_vim_check() {
+    echo "正在检查 vim 安装情况..."
+    if command -v vim >>/dev/null 2>&1; then
+	    echo "vim 似乎存在，安装过程继续..."
+    else
+	    echo "vim 未安装在此系统上，正在进行安装"
+	    yum install vim -y >>/dev/null 2>&1
+    fi
+}
+
 yum_require_install() {
     echo "正在安装系统所需依赖，可能需要几分钟的时间 . . ."
-    yum install python-devel python3-devel zbar zbar-devel ImageMagick wget -y >>/dev/null 2>&1
+    yum install python-devel python3-devel zbar zbar-devel ImageMagick wget vim -y >>/dev/null 2>&1
     wget -T 2 -O /etc/yum.repos.d/konimex-neofetch-epel-7.repo https://copr.fedorainfracloud.org/coprs/konimex/neofetch/repo/epel-7/konimex-neofetch-epel-7.repo >>/dev/null 2>&1
     yum groupinstall "Development Tools" -y >>/dev/null 2>&1
     yum-config-manager --add-repo https://download.opensuse.org/repositories/home:/Alexander_Pozdnyakov/CentOS_7/ >>/dev/null 2>&1
@@ -329,6 +339,16 @@ apt_screen_check() {
     else
         echo "Screen 未安装在此系统上，正在进行安装"
         apt-get install screen -y >>/dev/null 2>&1
+    fi
+}
+
+apt_vim_check() {
+    echo "正在检查 vim 安装情况..."
+    if command -v vim >>/dev/null 2>&1; then
+	    echo "vim 似乎存在，安装过程继续..."
+    else
+	    echo "vim 未安装在此系统上，正在进行安装"
+	    apt-get install vim -y >>/dev/null 2>&1
     fi
 }
 
