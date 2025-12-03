@@ -139,11 +139,34 @@ transfer_archive() {
             echo "未提供新机器地址，跳过传输"
             return
         fi
-        read -rp "请输入新机器保存路径 [默认: /var/lib]: " remote_path
-        remote_path=${remote_path:-/var/lib}
-        echo "正在传输文件，请稍候..."
-        scp "$ARCHIVE_PATH" "${remote_user}@${remote_host}:${remote_path}/"
-        echo "传输完成。请在新机器确认文件位置: ${remote_path}/$(basename "$ARCHIVE_PATH")"
+
+        local remote_path="/var/lib"
+        local remote_file="${remote_path}/$(basename "$ARCHIVE_PATH")"
+
+        echo ""
+        echo "==============================================================="
+        echo "传输信息确认"
+        echo "==============================================================="
+        echo "源文件: $ARCHIVE_PATH"
+        echo "目标用户: $remote_user"
+        echo "目标地址: $remote_host"
+        echo "目标路径: $remote_file"
+        echo "==============================================================="
+        echo ""
+        echo "即将开始传输，请在下方提示时输入 ${remote_user}@${remote_host} 的登录密码"
+        echo "(如已配置SSH密钥则无需输入密码)"
+        echo ""
+
+        if scp "$ARCHIVE_PATH" "${remote_user}@${remote_host}:${remote_path}/"; then
+            echo ""
+            echo "==============================================================="
+            echo "传输完成！"
+            echo "文件已保存至新机器: $remote_file"
+            echo "==============================================================="
+        else
+            echo ""
+            echo "传输失败，请检查网络连接或目标机器信息是否正确。"
+        fi
     else
         echo "已跳过自动传输。请手动将 $ARCHIVE_PATH 复制到新机器。"
     fi
@@ -279,6 +302,260 @@ source_mode() {
     echo "请在新机器执行同脚本并选择恢复模式完成迁移。"
 }
 
+one_key_migrate() {
+    # === 第一阶段：收集所有必要信息 ===
+    echo "==============================================================="
+    echo "一键迁移模式 - 信息收集"
+    echo "==============================================================="
+    echo ""
+
+    # 旧机器实例信息
+    prompt_install_name
+    ensure_install_exists
+    local old_install_name="$INSTALL_NAME"
+    local old_install_path="$INSTALL_PATH"
+    local old_service_name="$SERVICE_NAME"
+
+    # 新机器连接信息
+    echo ""
+    echo "请输入新机器的SSH连接信息："
+    echo "---------------------------------------------------------------"
+    read -rp "新机器用户名 [默认: root]: " remote_user
+    remote_user=${remote_user:-root}
+    read -rp "新机器地址 (例如 1.2.3.4 或 example.com): " remote_host
+    if [[ -z "$remote_host" ]]; then
+        echo "错误：必须提供新机器地址"
+        exit 1
+    fi
+    read -rp "新机器SSH端口 [默认: 22](如果新机器使用非默认22端口，请输入端口，否则直接回车即可): " remote_port
+    remote_port=${remote_port:-22}
+
+    # 新机器实例名称
+    echo ""
+    read -rp "新机器上的实例名称 [默认与旧机器相同: $old_install_name]: " new_install_name
+    new_install_name=${new_install_name:-$old_install_name}
+    local new_install_path="/var/lib/$new_install_name"
+    local new_service_name="$new_install_name"
+
+    # 确认信息
+    echo ""
+    echo "==============================================================="
+    echo "迁移信息确认"
+    echo "==============================================================="
+    echo "旧机器实例: $old_install_path"
+    echo "新机器连接: ${remote_user}@${remote_host}:${remote_port}"
+    echo "新机器实例: $new_install_path"
+    echo "==============================================================="
+    echo ""
+    echo "即将执行以下操作："
+    echo "  1. 停止旧机器服务并打包实例"
+    echo "  2. 通过SCP传输压缩包到新机器"
+    echo "  3. 通过SSH在新机器上自动部署"
+    echo ""
+    read -rp "确认以上信息正确并开始迁移？[y/N]: " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo "已取消迁移"
+        exit 0
+    fi
+
+    # === 第二阶段：建立SSH连接复用 ===
+    echo ""
+    echo ">>> 建立SSH连接..."
+    echo "---------------------------------------------------------------"
+    local ssh_control_path="/tmp/ssh_migrate_$$"
+
+    # 清理函数：确保退出时关闭SSH连接
+    cleanup_ssh() {
+        if [[ -S "$ssh_control_path" ]]; then
+            ssh -O exit -o ControlPath="$ssh_control_path" "${remote_user}@${remote_host}" 2>/dev/null || true
+        fi
+    }
+    trap cleanup_ssh EXIT
+
+    echo "请输入 ${remote_user}@${remote_host} 的登录密码"
+    echo "(如已配置SSH密钥则无需输入密码)"
+    echo ""
+
+    # 建立SSH主连接（后台保持，用于连接复用）
+    if ! ssh -M -f -N -o ControlPath="$ssh_control_path" -o ControlPersist=10m \
+         -o StrictHostKeyChecking=accept-new -p "$remote_port" "${remote_user}@${remote_host}"; then
+        echo "错误：无法建立SSH连接，请检查网络或认证信息"
+        exit 1
+    fi
+    echo "SSH连接已建立，后续操作将复用此连接（无需再次输入密码）"
+
+    # === 第三阶段：旧机器操作 ===
+    echo ""
+    echo ">>> 阶段1/3：旧机器打包操作"
+    echo "---------------------------------------------------------------"
+    stop_service_if_exists
+    remove_cron_job
+    export_requirements
+    create_archive
+
+    # === 第四阶段：传输文件 ===
+    echo ""
+    echo ">>> 阶段2/3：传输文件到新机器"
+    echo "---------------------------------------------------------------"
+    local remote_path="/var/lib"
+    local archive_name
+    archive_name=$(basename "$ARCHIVE_PATH")
+    local remote_archive="${remote_path}/${archive_name}"
+
+    echo "正在传输文件..."
+
+    if ! scp -o ControlPath="$ssh_control_path" -P "$remote_port" \
+         "$ARCHIVE_PATH" "${remote_user}@${remote_host}:${remote_path}/"; then
+        echo "错误：文件传输失败"
+        exit 1
+    fi
+    echo "文件传输完成: $remote_archive"
+
+    # === 第五阶段：远程部署 ===
+    echo ""
+    echo ">>> 阶段3/3：在新机器上部署"
+    echo "---------------------------------------------------------------"
+    echo "正在通过SSH连接新机器执行部署..."
+
+    # 通过SSH在新机器上执行部署脚本（复用已建立的连接）
+    # 注意：使用 'EOF' 防止本地变量展开，需要展开的变量使用 $var 形式传入
+    ssh -o ControlPath="$ssh_control_path" -p "$remote_port" "${remote_user}@${remote_host}" bash -s -- \
+        "$remote_archive" "$old_install_name" "$new_install_name" "$new_install_path" "$new_service_name" << 'REMOTE_SCRIPT'
+set -e
+
+REMOTE_ARCHIVE="$1"
+OLD_INSTALL_NAME="$2"
+NEW_INSTALL_NAME="$3"
+NEW_INSTALL_PATH="$4"
+NEW_SERVICE_NAME="$5"
+
+echo "=== 远程部署开始 ==="
+echo ""
+
+# 检查并处理目标目录
+if [[ -d "$NEW_INSTALL_PATH" ]]; then
+    echo "检测到 $NEW_INSTALL_PATH 已存在，正在备份..."
+    mv "$NEW_INSTALL_PATH" "${NEW_INSTALL_PATH}_backup_$(date +%Y%m%d%H%M%S)"
+fi
+
+# 解压
+echo "正在解压..."
+tar -xzf "$REMOTE_ARCHIVE" -C /var/lib
+
+# 如果实例名称不同，重命名目录
+if [[ "$OLD_INSTALL_NAME" != "$NEW_INSTALL_NAME" ]]; then
+    echo "重命名实例目录: $OLD_INSTALL_NAME -> $NEW_INSTALL_NAME"
+    mv "/var/lib/$OLD_INSTALL_NAME" "$NEW_INSTALL_PATH"
+fi
+
+# 检测系统类型并安装依赖
+echo ""
+echo "检测系统类型并安装依赖..."
+if [[ -f /etc/redhat-release ]]; then
+    echo "检测到 CentOS/RHEL 系统"
+    yum install -y python3 python3-venv python3-pip git screen imagemagick zbar zbar-devel tesseract tesseract-langpack-chi-sim tesseract-langpack-eng 2>/dev/null || true
+elif grep -qi "debian\|ubuntu" /etc/issue 2>/dev/null || grep -qi "debian\|ubuntu" /proc/version 2>/dev/null; then
+    echo "检测到 Debian/Ubuntu 系统"
+    apt-get update -qq
+    apt-get install -y python3 python3-venv python3-pip imagemagick libzbar-dev libxml2-dev libxslt-dev tesseract-ocr tesseract-ocr-all 2>/dev/null || true
+else
+    echo "未能识别系统类型，跳过系统依赖安装"
+fi
+
+# 重建虚拟环境
+echo ""
+echo "正在重建虚拟环境..."
+rm -rf "$NEW_INSTALL_PATH/venv"
+python3 -m venv "$NEW_INSTALL_PATH/venv"
+
+# 安装Python依赖
+echo "正在安装Python依赖..."
+"$NEW_INSTALL_PATH/venv/bin/pip" install --upgrade pip -q
+
+if [[ -f "$NEW_INSTALL_PATH/requirements.txt" ]]; then
+    echo "安装 requirements.txt ..."
+    "$NEW_INSTALL_PATH/venv/bin/pip" install -r "$NEW_INSTALL_PATH/requirements.txt" -q
+fi
+
+if [[ -f "$NEW_INSTALL_PATH/requirements_migrate.txt" ]]; then
+    echo "安装 requirements_migrate.txt ..."
+    "$NEW_INSTALL_PATH/venv/bin/pip" install -r "$NEW_INSTALL_PATH/requirements_migrate.txt" -q
+fi
+
+# 检测版本
+PGPMAID_VERSION="migrated"
+if [[ -f "$NEW_INSTALL_PATH/pagermaid/__init__.py" ]]; then
+    detected=$(grep -E "__version__" "$NEW_INSTALL_PATH/pagermaid/__init__.py" 2>/dev/null | head -n1 | sed -E "s/.*['\"]([^'\"]+)['\"].*/\1/" || true)
+    if [[ -n "$detected" ]]; then
+        PGPMAID_VERSION="$detected"
+    fi
+fi
+
+# 配置systemd服务
+echo ""
+echo "正在配置系统服务..."
+systemctl stop "$NEW_SERVICE_NAME" 2>/dev/null || true
+systemctl disable "$NEW_SERVICE_NAME" 2>/dev/null || true
+rm -f "/etc/systemd/system/$NEW_SERVICE_NAME.service"
+
+cat > "/etc/systemd/system/$NEW_SERVICE_NAME.service" << UNIT_EOF
+[Unit]
+Description=PagerMaid-Pyro ${PGPMAID_VERSION} telegram utility daemon ($NEW_INSTALL_NAME)
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=$NEW_INSTALL_PATH
+ExecStart=$NEW_INSTALL_PATH/venv/bin/python3 -m pagermaid
+Restart=always
+UNIT_EOF
+
+chmod 644 "/etc/systemd/system/$NEW_SERVICE_NAME.service"
+systemctl daemon-reload
+systemctl enable "$NEW_SERVICE_NAME"
+systemctl start "$NEW_SERVICE_NAME"
+
+# 检查服务状态
+sleep 2
+if systemctl is-active --quiet "$NEW_SERVICE_NAME"; then
+    echo ""
+    echo "=== 服务已成功启动 ==="
+else
+    echo ""
+    echo "=== 服务可能未成功启动，请稍后检查日志 ==="
+fi
+
+echo ""
+echo "=== 远程部署完成 ==="
+REMOTE_SCRIPT
+
+    local ssh_exit_code=$?
+
+    echo ""
+    echo "==============================================================="
+    if [[ $ssh_exit_code -eq 0 ]]; then
+        echo "一键迁移完成！"
+        echo "==============================================================="
+        echo "新机器实例路径: $new_install_path"
+        echo "新机器服务名称: $new_service_name"
+        echo ""
+        echo "查看新机器服务状态:"
+        echo "  ssh -p $remote_port ${remote_user}@${remote_host} 'systemctl status $new_service_name'"
+        echo ""
+        echo "查看新机器服务日志:"
+        echo "  ssh -p $remote_port ${remote_user}@${remote_host} 'journalctl -u $new_service_name -f'"
+    else
+        echo "远程部署过程中出现错误"
+        echo "==============================================================="
+        echo "请手动登录新机器检查情况:"
+        echo "  ssh -p $remote_port ${remote_user}@${remote_host}"
+    fi
+    echo "==============================================================="
+}
+
 destination_mode() {
     prompt_install_name
     read -rp "请输入压缩文件的完整路径: " archive_file
@@ -335,6 +612,7 @@ main_menu() {
     echo "==============================================================="
     echo "1) 旧机器：打包并迁移实例"
     echo "2) 新机器：解包并恢复实例"
+    echo "3) 旧机器：一键迁移实例不用在新机器上在执行一次脚本（beta V0.1）"
     echo "q) 退出"
     echo -e "\033[1;34m如遇问题，可联系作者sunmoon\033[0m"
     echo "==============================================================="
@@ -343,6 +621,7 @@ main_menu() {
         case "$choice" in
             1) source_mode; break ;;
             2) destination_mode; break ;;
+            3) one_key_migrate; break ;;
             q|Q) echo "已退出。"; exit 0 ;;
             *) echo "输入无效，请重新选择。" ;;
         esac
