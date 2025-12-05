@@ -221,7 +221,7 @@ install_system_dependencies() {
         yum install -y python3 python3-venv python3-pip git screen imagemagick zbar zbar-devel tesseract tesseract-langpack-chi-sim tesseract-langpack-eng
     elif [[ "$RELEASE" = "ubuntu" || "$RELEASE" = "debian" ]]; then
         apt-get update
-        apt-get install -y python3 python3-venv python3-pip imagemagick libzbar-dev libxml2-dev libxslt-dev tesseract-ocr tesseract-ocr-all
+        apt-get install -y python3 python3-venv python3-pip git screen imagemagick libzbar-dev libxml2-dev libxslt-dev tesseract-ocr tesseract-ocr-all
     else
         echo "无法识别的系统，已跳过系统依赖安装。"
     fi
@@ -576,6 +576,10 @@ destination_mode() {
     mkdir -p /var/lib
     echo "正在解压..."
     tar -xzf "$archive_file" -C /var/lib
+
+    echo ""
+    echo "正在检查并安装系统依赖..."
+    install_system_dependencies
 
     install_requirements_chain
 
